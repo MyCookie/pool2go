@@ -290,3 +290,6 @@ $RECYCLE.BIN/
 
 
 # End of https://www.gitignore.io/api/linux,android,windows,intellij,androidstudio
+
+# Google Maps API Key
+/app/src/main/res/values/google_maps_api.xml
