@@ -14,9 +14,19 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.Date;
+
 public class Map extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    static public String LOG_FILE_NAME = "pool2go_log.txt";
 
     /**
      * TODO: Fill in remaining Overridden methods
@@ -25,11 +35,8 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
         @Override
         public void onLocationChanged(Location location) {
             setLocation(location);
-            // We can't traditionally make a Snackbar with only a Fragment, but each Fragment inherits
-            // an invisible View. So grab the implicit view and use it to make a Snackbar.
-            Snackbar.make(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView(),
-                    "Location updated",
-                    Snackbar.LENGTH_LONG).show();
+            logLocation(location);
+            //notifyUser("Location updated");
         }
 
         @Override
@@ -57,6 +64,18 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        // the tag is the id within the activity lifecycle, ie. like "map" in this activity
+        //new DisplayFileList().show(getFragmentManager(), "fileListDialog");
+
+        // TODO: Move logfile logic to top-level activity
+        File logFile;
+        if (!Arrays.asList(this.fileList()).contains(LOG_FILE_NAME)) {
+            // logfile does not exist, create it
+            logFile = new File(this.getFilesDir(), LOG_FILE_NAME);
+            notifyUser("Created logfile " + LOG_FILE_NAME);
+        } else {
+            notifyUser("Logfile exists " + LOG_FILE_NAME);
+        }
     }
 
     /**
@@ -81,8 +100,8 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
 
         try {
             //TODO: Better design to grab location from the listener, or explicitly grab it first?
-            //Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            //setLocation(location);
+            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            setLocation(location);
 
             // Request a location update every 5 seconds or 10 meters, whichever happens first
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
@@ -91,7 +110,6 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
                     locationListener);
         } catch (SecurityException e) {
             // No suitable permission present
-            //this.getApplicationContext();
             e.getMessage();
         }
     }
@@ -107,5 +125,36 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         // Move camera and zoom in to level 15
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+    }
+
+    /**
+     * Log the new location in the logfile.
+     *
+     * @param location passed from locationManager
+     */
+    public void logLocation(Location location) {
+        // https://developer.android.com/reference/java/util/Date.html#toString()
+        String date = java.util.Calendar.getInstance().getTime().toString();
+        String fileContents = date + ", " + location.getLatitude() + ", " + location.getLongitude();
+        FileOutputStream fileOutputStream;
+        try {
+            fileOutputStream = openFileOutput(LOG_FILE_NAME, Context.MODE_APPEND);
+            fileOutputStream.write(fileContents.getBytes());
+            fileOutputStream.close();
+        } catch (IOException e) {
+            e.getMessage();
+        }
+    }
+
+    /**
+     * We can't traditionally make a Snackbar with only a Fragment, but each Fragment inherits an
+     * invisible View. So grab the implicit view and use it to make a Snackbar.
+     *
+     * @param message
+     */
+    public void notifyUser(String message) {
+        Snackbar.make(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView(),
+                message,
+                Snackbar.LENGTH_LONG).show();
     }
 }
