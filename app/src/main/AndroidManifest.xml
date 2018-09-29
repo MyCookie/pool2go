@@ -33,6 +33,11 @@
         <activity
             android:name=".Map"
             android:label="@string/title_activity_home">
+        </activity>
+        <activity
+            android:name=".TestActivity"
+            android:label="@string/title_activity_test"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
