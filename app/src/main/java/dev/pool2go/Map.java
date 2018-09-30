@@ -68,10 +68,11 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
         //new DisplayFileList().show(getFragmentManager(), "fileListDialog");
 
         // TODO: Move logfile logic to top-level activity
-        File logFile;
+        //File logFile;
         if (!Arrays.asList(this.fileList()).contains(LOG_FILE_NAME)) {
             // logfile does not exist, create it
-            logFile = new File(this.getFilesDir(), LOG_FILE_NAME);
+            //logFile = new File(this.getFilesDir(), LOG_FILE_NAME);
+            new File(this.getFilesDir(), LOG_FILE_NAME);
             notifyUser("Created logfile " + LOG_FILE_NAME);
         } else {
             notifyUser("Logfile exists " + LOG_FILE_NAME);
@@ -99,9 +100,9 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         try {
-            //TODO: Better design to grab location from the listener, or explicitly grab it first?
-            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            setLocation(location);
+            // TODO: On a fresh boot, location will be null: there is no "last known location"
+            //Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            //setLocation(location);
 
             // Request a location update every 5 seconds or 10 meters, whichever happens first
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
