@@ -23,7 +23,7 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Date;
 
-public class Map extends AppCompatActivity implements OnMapReadyCallback {
+public class Map extends AppCompatActivity implements OnMapReadyCallback, CallingActivity {
 
     private GoogleMap mMap;
     static public String LOG_FILE_NAME = "pool2go_log.txt";
@@ -101,6 +101,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
 
         try {
             // TODO: On a fresh boot, location will be null: there is no "last known location"
+            //https://developer.android.com/reference/android/location/LocationManager#requestSingleUpdate(java.lang.String,%20android.app.PendingIntent)
             //Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             //setLocation(location);
 
@@ -134,16 +135,25 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback {
      * @param location passed from locationManager
      */
     public void logLocation(Location location) {
+        appendLog(location.getLatitude() + ", " + location.getLongitude());
+    }
+
+    /**
+     * Writes a string to the log file in the form of "$DATE, $STRING".
+     *
+     * @param s Contents to be written, date not required.
+     */
+    public void appendLog(String s) {
         // https://developer.android.com/reference/java/util/Date.html#toString()
         String date = java.util.Calendar.getInstance().getTime().toString();
-        String fileContents = date + ", " + location.getLatitude() + ", " + location.getLongitude();
+        s = date + ", " + s;
         FileOutputStream fileOutputStream;
         try {
             fileOutputStream = openFileOutput(LOG_FILE_NAME, Context.MODE_APPEND);
-            fileOutputStream.write(fileContents.getBytes());
+            fileOutputStream.write(s.getBytes());
             fileOutputStream.close();
         } catch (IOException e) {
-            e.getMessage();
+            e.printStackTrace();
         }
     }
 
