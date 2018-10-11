@@ -172,6 +172,25 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     }
 
     /**
+     * Send the location to a server on localhost:8080.
+     *
+     * TODO: Re-write this when sending to a real server.
+     *
+     * @param location
+     */
+    public void sendLocation(Location location) {
+        Socket socket;
+        try {
+            socket = new Socket("localhost", 8080);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println(location.getLatitude() + location.getLongitude());
+            socket.close();
+        } catch (IOException e) {
+            e.getMessage();
+        }
+    }
+
+    /**
      * Writes a string to the log file in the form of "$DATE, $STRING".
      *
      * @param s Contents to be written, date not required.
