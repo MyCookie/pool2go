@@ -158,6 +158,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     public void setLocation(Location location) {
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         // Move camera and zoom in to level 15
+        // TODO: We don't want to reset the zoom level for each location update, this will override the user's preferred zoom level while interacting
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
     }
 
@@ -167,15 +168,17 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      * @param location passed from locationManager
      */
     public void logLocation(Location location) {
-        appendLog(location.getLatitude() + ", " + location.getLongitude(), false);
+        appendLog(LOG_FILE_NAME, location.getLatitude() + ", " + location.getLongitude(), false);
     }
 
     /**
      * Writes a string to the log file in the form of "$DATE, $STRING".
      *
      * @param s Contents to be written, date not required.
+     * @param notify
+     * @param filename
      */
-    public void appendLog(String s, boolean notify) {
+    public void appendLog(String filename, String s, boolean notify) {
         // https://developer.android.com/reference/java/util/Date.html#toString()
         String date = java.util.Calendar.getInstance().getTime().toString();
         s = date + ", " + s;
