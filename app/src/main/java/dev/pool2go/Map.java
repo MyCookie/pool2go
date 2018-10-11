@@ -33,6 +33,7 @@ import java.util.Date;
 public class Map extends AppCompatActivity implements OnMapReadyCallback, CallingActivity {
 
     private GoogleMap mMap;
+    private Thread server;
     static public String LOG_FILE_NAME = "pool2go_log.txt";
 
     /**
@@ -43,7 +44,6 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         public void onLocationChanged(Location location) {
             setLocation(location);
             logLocation(location);
-            //notifyUser("Location updated");
         }
 
         @Override
@@ -74,20 +74,13 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         // the tag is the id within the activity lifecycle, ie. like "map" in this activity
         //new DisplayFileList().show(getFragmentManager(), "fileListDialog");
 
-        // TODO: Move logfile logic to top-level activity
-        //File logFile;
-        if (!Arrays.asList(this.fileList()).contains(LOG_FILE_NAME)) {
-            // logfile does not exist, create it
-            //logFile = new File(this.getFilesDir(), LOG_FILE_NAME);
-            new File(this.getFilesDir(), LOG_FILE_NAME);
-            notifyUser("Created logfile " + LOG_FILE_NAME);
-        } else {
-            notifyUser("Logfile exists " + LOG_FILE_NAME);
-        }
+        // TODO: Keep following logic to top-level activity
+        fileFactory(LOG_FILE_NAME);
 
         // Start a dummy server on localhost
         try {
-            (new Thread(new TestServer(this))).start();
+            server = new Thread(new TestServer(this));
+            server.start();
         } catch (IOException e) {
             e.getMessage();
         }
@@ -137,6 +130,21 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         } catch (SecurityException e) {
             // No suitable permission present
             e.getMessage();
+        }
+    }
+
+    /**
+     * Check if file exists, if not, create it.
+     *
+     * @param filename
+     */
+    public void fileFactory(String filename) {
+        if (!Arrays.asList(this.fileList()).contains(filename)) {
+            // file does not exist, create it
+            new File(this.getFilesDir(), filename);
+            notifyUser("Created file " + filename);
+        } else {
+            notifyUser(filename + " already exists");
         }
     }
 
