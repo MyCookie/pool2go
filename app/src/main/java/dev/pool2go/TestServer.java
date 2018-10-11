@@ -30,7 +30,7 @@ public class TestServer implements Runnable {
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 String s = in.readLine();
                 if (s != null) {
-                    caller.appendLog("TestServer: " + s);
+                    caller.appendLog("TestServer: " + s, false);
                 }
             }
         } catch (IOException e) {
