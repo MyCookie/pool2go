@@ -6,5 +6,5 @@ package dev.pool2go;
  * the server.
  */
 public interface CallingActivity {
-    void appendLog(String s);
+    void appendLog(String s, boolean notify);
 }

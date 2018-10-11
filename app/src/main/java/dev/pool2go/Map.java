@@ -1,11 +1,14 @@
 package dev.pool2go;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -14,12 +17,16 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 
+import junit.framework.Test;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Array;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -77,6 +84,13 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         } else {
             notifyUser("Logfile exists " + LOG_FILE_NAME);
         }
+
+        // Start a dummy server on localhost
+        try {
+            (new Thread(new TestServer(this))).start();
+        } catch (IOException e) {
+            e.getMessage();
+        }
     }
 
     /**
@@ -93,6 +107,16 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         mMap = googleMap;
 
         // Draw the blue dot
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         mMap.setMyLocationEnabled(true);
 
         // Start the location listener
@@ -135,7 +159,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      * @param location passed from locationManager
      */
     public void logLocation(Location location) {
-        appendLog(location.getLatitude() + ", " + location.getLongitude());
+        appendLog(location.getLatitude() + ", " + location.getLongitude(), false);
     }
 
     /**
@@ -143,7 +167,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      *
      * @param s Contents to be written, date not required.
      */
-    public void appendLog(String s) {
+    public void appendLog(String s, boolean notify) {
         // https://developer.android.com/reference/java/util/Date.html#toString()
         String date = java.util.Calendar.getInstance().getTime().toString();
         s = date + ", " + s;
@@ -155,6 +179,9 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        if (notify)
+            notifyUser("Log appended");
     }
 
     /**
