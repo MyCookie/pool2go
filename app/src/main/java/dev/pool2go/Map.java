@@ -135,23 +135,11 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         try {
-            // TODO: On a fresh boot, location will be null: there is no "last known location"
-            //https://developer.android.com/reference/android/location/LocationManager#requestSingleUpdate(java.lang.String,%20android.app.PendingIntent)
-            //Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            //setLocation(location);
-
-            // an incredibly hacky solution, but works for now
-            // gps location is not network location
-            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            if (location != null)
-                setFirstLocation(location);
+            // https://developer.android.com/guide/topics/location/strategies
+            grabInitialLocation();
 
             // Request a location update every 5 seconds or 10 meters, whichever happens first
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                    5000,
-                    10,
-                    locationListener);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
                     5000,
                     10,
                     locationListener);
@@ -177,6 +165,54 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     }
 
     /**
+     * Grab the initial location, there's a bit of work that may be required:
+     *
+     * Unfortunately, if there is no last known location, we'll need to do extra work to grab a coarse
+     * location. A fine location may be too slow for the user, and we want some sort of a UI update
+     * ASAP.
+     *
+     * We need a new listener because the usual one will not set the proper zoom level.
+     *
+     * https://developer.android.com/reference/android/location/LocationManager#requestSingleUpdate(java.lang.String,%20android.app.PendingIntent)
+     */
+    public void grabInitialLocation() {
+        try {
+            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            if (location != null)
+                setFirstLocation(location);
+            else {
+                locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER,
+                        new LocationListener() {
+                            @Override
+                            public void onLocationChanged(Location location) {
+                                setFirstLocation(location);
+                                // TODO: this is usually only required if we request ongoing updates, remove?
+                                locationManager.removeUpdates(this);
+                            }
+
+                            @Override
+                            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+                            }
+
+                            @Override
+                            public void onProviderEnabled(String provider) {
+
+                            }
+
+                            @Override
+                            public void onProviderDisabled(String provider) {
+
+                            }
+                        },
+                        null);
+            }
+        } catch (SecurityException e) {
+            e.getMessage();
+        }
+    }
+
+    /**
      * Set new location, is usually called from locationListener. This update should not set a zoom
      * level.
      *
@@ -186,7 +222,6 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      */
     public void setLocation(Location location) {
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
     }
 
