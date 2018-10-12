@@ -11,25 +11,18 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 
-import junit.framework.Test;
-
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.Date;
 
 public class Map extends AppCompatActivity implements OnMapReadyCallback, CallingActivity {
 
@@ -179,13 +172,13 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         try {
             Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             if (location != null)
-                setFirstLocation(location);
+                setLocationAndZoom(location);
             else {
                 locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER,
                         new LocationListener() {
                             @Override
                             public void onLocationChanged(Location location) {
-                                setFirstLocation(location);
+                                setLocationAndZoom(location);
                                 // TODO: this is usually only required if we request ongoing updates, remove?
                                 locationManager.removeUpdates(this);
                             }
@@ -226,12 +219,13 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     }
 
     /**
-     * Our first camera movement should work off either the first known location, or a pending location
-     * request. This camera movement will set zoom level as well.
+     * Set new location and zoom to a reasonable default.
+     *
+     * Using this to set initial update, as it should be fast enough for interacting on boot right away.
      *
      * @param location
      */
-    public void setFirstLocation(Location location) {
+    public void setLocationAndZoom(Location location) {
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         // Move camera and zoom in to level 15
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
