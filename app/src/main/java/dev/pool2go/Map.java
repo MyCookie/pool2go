@@ -88,12 +88,18 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         }
     }
 
+    /**
+     * Clean up our mess first before stopping
+     */
     @Override
     public void onStop() {
 
         // it's possible the listener will be waiting for a last update after the app crashes
         if (locationManager != null)
             locationManager.removeUpdates(locationListener);
+
+        // Thread.stop() is deprecated, the server should instead check if it has been interrupted
+        server.interrupt();
 
         super.onStop();
     }

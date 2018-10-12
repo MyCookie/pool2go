@@ -49,6 +49,10 @@ public class TestServer implements Runnable {
                         caller.appendLog(filename, "TestServer, " + caller.getClass().getSimpleName() + ": " + s, false);
                     }
                 }
+
+                // Thread.stop() has been deprecated, use Thread.interrupt() instead
+                if (Thread.interrupted())
+                    return;
             }
         } catch (IOException e) {
             e.getMessage();
