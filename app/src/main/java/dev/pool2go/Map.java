@@ -74,7 +74,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
 
         // Start a dummy server on localhost
         try {
-            server = new Thread(new TestServer(this));
+            server = new Thread(new TestServer(this, 8080));
             server.start();
         } catch (IOException e) {
             e.getMessage();

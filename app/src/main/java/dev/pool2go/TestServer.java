@@ -16,8 +16,8 @@ public class TestServer implements Runnable {
     CallingActivity caller;
     String filename;
 
-    public TestServer (CallingActivity appendLogCallback) throws IOException {
-        listener = new ServerSocket(8080);
+    public TestServer (CallingActivity appendLogCallback, int port) throws IOException {
+        listener = new ServerSocket(port);
         caller = appendLogCallback;
         // associate a new logfile for the server and it's caller/creator class
         if (caller.getClass().isAnonymousClass()) {
