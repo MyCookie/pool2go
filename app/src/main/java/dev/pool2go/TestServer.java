@@ -24,11 +24,11 @@ public class TestServer implements Runnable {
             // however if it is an anonymous class, make a generic log file
             // when writing to the file, use the class's memory address to identify the log
             filename = "test_server_log.txt";
-            caller.fileFactory(filename);
+            caller.fileFactory(filename, false);
             caller.appendLog(filename, "Added new anonymous class located at " + caller.toString(), false);
         } else {
             filename = "test_server_" + caller.getClass().getSimpleName() + "_.txt";
-            caller.fileFactory(filename);
+            caller.fileFactory(filename, false);
         }
     }
 

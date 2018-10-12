@@ -19,8 +19,10 @@ public interface CallingActivity {
 
     /**
      * Pass a file name, if a file with the given name exists, do nothing. If not, create the file.
+     * If notify is flagged as true, create a simple, un-obtrusive notification for the user.
      *
      * @param filename
+     * @param notify
      */
-    void fileFactory(String filename);
+    void fileFactory(String filename, boolean notify);
 }

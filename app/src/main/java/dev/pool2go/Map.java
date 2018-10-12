@@ -70,7 +70,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         //new DisplayFileList().show(getFragmentManager(), "fileListDialog");
 
         // TODO: Keep following logic to top-level activity
-        fileFactory(LOG_FILE_NAME);
+        fileFactory(LOG_FILE_NAME, false);
 
         // Start a dummy server on localhost
         try {
@@ -147,13 +147,15 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      *
      * @param filename
      */
-    public void fileFactory(String filename) {
+    public void fileFactory(String filename, boolean notify) {
         if (!Arrays.asList(this.fileList()).contains(filename)) {
             // file does not exist, create it
             new File(this.getFilesDir(), filename);
-            notifyUser("Created file " + filename);
+            if (notify)
+                notifyUser("Created file " + filename);
         } else {
-            notifyUser(filename + " already exists");
+            if (notify)
+                notifyUser(filename + " already exists");
         }
     }
 
