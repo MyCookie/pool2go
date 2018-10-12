@@ -11,6 +11,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -33,6 +34,7 @@ import java.util.Date;
 public class Map extends AppCompatActivity implements OnMapReadyCallback, CallingActivity {
 
     private GoogleMap mMap;
+    private LocationManager locationManager;
     private Thread server;
     static public String LOG_FILE_NAME = "pool2go_log.txt";
 
@@ -86,6 +88,16 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         }
     }
 
+    @Override
+    public void onStop() {
+
+        // it's possible the listener will be waiting for a last update after the app crashes
+        if (locationManager != null)
+            locationManager.removeUpdates(locationListener);
+
+        super.onStop();
+    }
+
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -114,7 +126,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
 
         // Start the location listener
         // TODO: How to make sure the device has an available location service? This can return null
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         try {
             // TODO: On a fresh boot, location will be null: there is no "last known location"
@@ -122,8 +134,18 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
             //Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             //setLocation(location);
 
+            // an incredibly hacky solution, but works for now
+            // gps location is not network location
+            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            if (location != null)
+                setFirstLocation(location);
+
             // Request a location update every 5 seconds or 10 meters, whichever happens first
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                    5000,
+                    10,
+                    locationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
                     5000,
                     10,
                     locationListener);
@@ -149,7 +171,8 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     }
 
     /**
-     * Set new location, is usually called from locationListener.
+     * Set new location, is usually called from locationListener. This update should not set a zoom
+     * level.
      *
      * https://stackoverflow.com/questions/2227292/how-to-get-latitude-and-longitude-of-the-mobile-device-in-android
      *
@@ -157,8 +180,19 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      */
     public void setLocation(Location location) {
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+    }
+
+    /**
+     * Our first camera movement should work off either the first known location, or a pending location
+     * request. This camera movement will set zoom level as well.
+     *
+     * @param location
+     */
+    public void setFirstLocation(Location location) {
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         // Move camera and zoom in to level 15
-        // TODO: We don't want to reset the zoom level for each location update, this will override the user's preferred zoom level while interacting
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
     }
 
@@ -168,7 +202,9 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      * @param location passed from locationManager
      */
     public void logLocation(Location location) {
-        appendLog(LOG_FILE_NAME, location.getLatitude() + ", " + location.getLongitude(), false);
+        appendLog(LOG_FILE_NAME,
+                location.getLatitude() + ", " + location.getLongitude(),
+                false);
     }
 
     /**
