@@ -25,3 +25,10 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+project.version = 'alpha-' + getDate()
+
+def getDate() {
+    def date = new Date().format('yyyyMMdd')
+    return date
+}

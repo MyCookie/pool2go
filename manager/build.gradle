@@ -1,0 +1,41 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
+    }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation project(':server')
+}
+
+def serverVersion = 'alpha-' + new Date().format('yyyyMMdd')
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'net.pool2go.Main',
+            'Specification-Version': serverVersion,
+            'Implementation-Verstion': serverVersion
+        )
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.runtimeClasspath]
+
+    baseName = 'pool2go-server'
+    classifier = null
+    version = serverVersion
+}
+
+mainClassName = "net.pool2go.Main"
+sourceCompatibility = "8"
+targetCompatibility = "8"
