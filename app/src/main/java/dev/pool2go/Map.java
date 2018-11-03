@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -18,17 +19,20 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.logging.Level;
 
 public class Map extends AppCompatActivity implements OnMapReadyCallback, CallingActivity {
+
+    private static final String TAG = Map.class.getSimpleName();
 
     private GoogleMap mMap;
     private LocationManager locationManager;
     private Thread server;
+
     static public String LOG_FILE_NAME = "pool2go_log.txt";
 
     /**
@@ -74,7 +78,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
 
         // Start a dummy server on localhost
         try {
-            server = new Thread(new TestServer(this, 8080));
+            server = new Thread(new EchoServer(this, 8080));
             server.start();
         } catch (IOException e) {
             e.getMessage();
@@ -239,8 +243,8 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      * @param location passed from locationManager
      */
     public void logLocation(Location location) {
-        appendLog(LOG_FILE_NAME,
-                location.getLatitude() + ", " + location.getLongitude(),
+        appendLog(Level.INFO,
+                "Location updated: " + location.getLatitude() + ", " + location.getLongitude(),
                 false);
     }
 
@@ -251,7 +255,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
      *
      * @param location
      */
-    public void sendLocation(Location location) {
+    public void sendLocationToEchoServer(Location location) {
         Socket socket;
         try {
             socket = new Socket("localhost", 8080);
@@ -264,27 +268,26 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     }
 
     /**
-     * Writes a string to the log file in the form of "$DATE, $STRING".
-     *
-     * @param s Contents to be written, date not required.
-     * @param notify
-     * @param filename
+     * <p>Writes a message to Logcat in the form:</p>
+     * <p>
+     *     <ul>
+     *         <li>Level.SEVERE: Log an error</li>
+     *         <li>Level.WARNING: Log a warning</li>
+     *         <li>Level.CONFIG: Log useful events</li>
+     *         <li>Level.INFO: Log a debug message</li>
+     *     </ul>
+     * </p>
+     * @param level see java.util.Logging.Level
+     * @param s message to log
+     * @param notify if true, create a snack bar message for the user containing the level
      */
-    public void appendLog(String filename, String s, boolean notify) {
-        // https://developer.android.com/reference/java/util/Date.html#toString()
-        String date = java.util.Calendar.getInstance().getTime().toString();
-        s = date + ", " + s;
-        FileOutputStream fileOutputStream;
-        try {
-            fileOutputStream = openFileOutput(LOG_FILE_NAME, Context.MODE_APPEND);
-            fileOutputStream.write(s.getBytes());
-            fileOutputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void appendLog(Level level, String s, boolean notify) {
+        if (level == Level.SEVERE) Log.e(TAG, s);
+        else if (level == Level.WARNING) Log.w(TAG, s);
+        else if (level == Level.CONFIG) Log.i(TAG, s);
+        else if (level == Level.INFO) Log.d(TAG, s);
 
-        if (notify)
-            notifyUser("Log appended");
+        if (notify) notifyUser("Logged a " + level.toString() + " message to logcat.");
     }
 
     /**
