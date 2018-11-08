@@ -18,6 +18,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 
+import net.pool2go.LocationObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,6 +33,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
 
     private GoogleMap mMap;
     private LocationManager locationManager;
+    private LocationObject currentLocation;
     private Thread server;
 
     static public String LOG_FILE_NAME = "pool2go_log.txt";
@@ -185,6 +188,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
                             @Override
                             public void onLocationChanged(Location location) {
                                 setLocationAndZoom(location);
+                                logLocation(location);
                                 // TODO: this is usually only required if we request ongoing updates, remove?
                                 locationManager.removeUpdates(this);
                             }
@@ -238,7 +242,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     }
 
     /**
-     * Log the new location in the logfile.
+     * Log the new location in the logfile, and save the location locally.
      *
      * @param location passed from locationManager
      */
@@ -246,6 +250,13 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         appendLog(Level.INFO,
                 "Location updated: " + location.getLatitude() + ", " + location.getLongitude(),
                 false);
+
+        if (currentLocation == null)
+            currentLocation = new LocationObject(location.getLatitude(), location.getLongitude());
+        else {
+            currentLocation.setLatitude(location.getLatitude());
+            currentLocation.setLongitude(location.getLongitude());
+        }
     }
 
     /**
