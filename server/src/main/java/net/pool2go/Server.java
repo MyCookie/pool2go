@@ -130,8 +130,9 @@ public class Server implements Runnable {
                     " latitude real,\n" +
                     " longitude real\n" +
                     ");";
+            // !! -- new sql query for using key pairs for unique id
             String sqlCreateTableKeyPair = "CREATE TABLE IF NOT EXISTS Locations (\n" +
-                    " key text PRIMARY KEY,\n" +
+                    " key blob PRIMARY KEY,\n" + // byte[] is stored as var(long)binary in javasql/mysql, blobs in sqlite
                     " latitude real,\n" +
                     " longitude real,\n" +
                     " clientPublicKeyAlgorithm,\n" +
@@ -191,12 +192,112 @@ public class Server implements Runnable {
         logger.log(Level.CONFIG, "Public key array: " + serverPublicKeyString);
     }
 
-    private void rebuildPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        byte [] keyArr = null;
+    // !! -- begin new additions for key pair auth
+
+    private void rebuildPublicKey(byte [] publicKeyArr) throws NoSuchAlgorithmException, InvalidKeySpecException {
         String publicKeyAlgorithm = "RSA";
         String publicKeyFormat = "X.509";
-        PublicKey key = KeyFactory.getInstance(publicKeyAlgorithm).generatePublic(new X509EncodedKeySpec(keyArr));
+        PublicKey key = KeyFactory.getInstance(publicKeyAlgorithm).generatePublic(new X509EncodedKeySpec(publicKeyArr));
     }
+
+    private void performHandshake(Socket socket) throws IOException, ClassNotFoundException {
+        PublicKey serverPublicKey = serverKeyPair.getPublic();
+        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+        out.writeObject(new LocationObject(serverPublicKey, OUT_OF_BOUNDS_LATITUDE, OUT_OF_BOUNDS_LONGITUDE));
+        out.flush();
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        LocationObject locationObject = (LocationObject) in.readObject();
+        PublicKey clientKey = locationObject.getPublicKey();
+        int count = 1000; // client gets 1000 chances
+        while (!locationObject.getPublicKey().equals(clientKey) && count > 0) {
+            out.writeObject(new LocationObject(serverPublicKey, OUT_OF_BOUNDS_LATITUDE, OUT_OF_BOUNDS_LONGITUDE));
+            out.flush();
+            locationObject = (LocationObject) in.readObject();
+            --count;
+        }
+        if (count == 0) throw new IOException("Could not perform a handshake with the server.");
+    }
+
+    private void recordNewLocation(Socket socket) throws IOException, ClassNotFoundException, SQLException {
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        LocationObject newLocation = (LocationObject) in.readObject();
+        findAndInsertLocationOnPublicKey(newLocation);
+    }
+
+    private void findAndInsertLocationOnPublicKey(LocationObject locationObject) throws SQLException {
+        connection = DriverManager.getConnection(dbUrl);
+
+        // find an existing location entry with key
+        String sqlFindExistingKey = "SELECT key FROM Locations WHERE key = ?";
+        PreparedStatement statement = connection.prepareStatement(sqlFindExistingKey);
+        statement.setBytes(1, locationObject.getPublicKey().getEncoded());
+        ResultSet resultSet = statement.executeQuery();
+
+        // easier to check if there is a first entry
+        // https://stackoverflow.com/questions/867194/java-resultset-how-to-check-if-there-are-any-results
+        // isBeforeFirst will return true only if there was any records retrieved from a query
+        // https://stackoverflow.com/questions/26324603/jdbc-returns-an-empty-resultset-rs-isbeforefirst-true-although-the-table
+        if (!resultSet.isBeforeFirst()) { // no location entry for key, insert a new record
+            String sqlInsertLocation = "INSERT INTO Locations(key, latitude, longitude) VALUES(?,?,?)";
+
+            statement = connection.prepareStatement(sqlInsertLocation);
+            statement.setBytes(1, locationObject.getPublicKey().getEncoded());
+            statement.setDouble(2, locationObject.getLatitude());
+            statement.setDouble(3, locationObject.getLongitude());
+
+            statement.executeUpdate();
+        } else { // if an entry exists, update it
+            String sqlUpdateExistingRecord = "UPDATE Locations\n" +
+                    "SET latitude = ?,\n" +
+                    "    longitude = ?\n" +
+                    "WHERE key = ?";
+
+            statement = connection.prepareStatement(sqlUpdateExistingRecord);
+            statement.setDouble(1, locationObject.getLatitude());
+            statement.setDouble(2, locationObject.getLongitude());
+            statement.setBytes(3, locationObject.getPublicKey().getEncoded());
+
+            statement.executeUpdate();
+        }
+
+        connection.close();
+    }
+
+    private void findNearestLocationsOnPublicKey(LocationObject locationObject,
+                                      ArrayList<LocationObject> locationObjects) throws SQLException {
+        connection = DriverManager.getConnection(dbUrl);
+
+        String sqlGetAllRecordsNotOfClientKey = "SELECT key, latitude, longitude FROM Locations WHERE key <> ?";
+        PreparedStatement statement = connection.prepareStatement(sqlGetAllRecordsNotOfClientKey);
+        statement.setBytes(1, locationObject.getPublicKey().getEncoded());
+        ResultSet resultSet = statement.executeQuery();
+
+        double resultLat = 0;
+        double resultLng = 0;
+
+        if (!resultSet.isBeforeFirst()) {
+            // no other clients exist, empty the list
+            locationObjects.clear();
+        } else {
+            while (resultSet.next()) {
+                // https://en.wikipedia.org/wiki/Decimal_degrees
+                // 0.005 ~ 200 meters
+                resultLat = resultSet.getDouble("latitude");
+                if (Math.abs(resultLat - locationObject.getLatitude()) < 0.005) {
+                    // within latitude bounds
+                    resultLng = resultSet.getDouble("longitude");
+                    if (Math.abs(resultLng - locationObject.getLongitude()) < 0.005) {
+                        // within longitude bounds
+                        locationObjects.add(new LocationObject(locationObject.getPublicKey(), resultLat, resultLng));
+                    }
+                }
+            }
+        }
+
+        connection.close();
+    }
+
+    // !! -- end additions for key pair auth
 
     /**
      * Insert an updated location. Search for an existing record with the key; if none found, insert a new record,
