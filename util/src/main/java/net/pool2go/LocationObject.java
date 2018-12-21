@@ -57,6 +57,8 @@ public class LocationObject implements Serializable {
         return key;
     }
 
+    public PublicKey getPublicKey() { return publicKey; }
+
     public double getLatitude() {
         return latitude;
     }
