@@ -1,6 +1,7 @@
 package net.pool2go;
 
 import java.io.Serializable;
+import java.security.PublicKey;
 
 /**
  * A wrapper for a location in the form of Latitude, Longitude and tied to an identifier.
@@ -10,6 +11,7 @@ import java.io.Serializable;
 public class LocationObject implements Serializable {
 
     private String key;
+    private PublicKey publicKey;
     private double latitude;
     private double longitude;
 
@@ -34,6 +36,19 @@ public class LocationObject implements Serializable {
      */
     public LocationObject(String key, double lat, double lng) {
         this.key = key;
+        latitude = lat;
+        longitude = lng;
+    }
+
+    /**
+     * Create a LocationObject with an attached public key.
+     *
+     * @param publicKey
+     * @param lat
+     * @param lng
+     */
+    public LocationObject(PublicKey publicKey, double lat, double lng) {
+        this.publicKey = publicKey;
         latitude = lat;
         longitude = lng;
     }

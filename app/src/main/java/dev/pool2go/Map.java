@@ -24,6 +24,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.logging.Level;
 
@@ -35,6 +39,8 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
     private LocationManager locationManager;
     private LocationObject currentLocation;
     private Thread server;
+    private KeyPair keyPair;
+    private PublicKey serverKey;
 
     static public String LOG_FILE_NAME = "pool2go_log.txt";
 
@@ -78,6 +84,17 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
 
         // TODO: Keep following logic to top-level activity
         fileFactory(LOG_FILE_NAME, false);
+
+        KeyPairGenerator keyPairGenerator = null;
+
+        try {
+            keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        } catch (NoSuchAlgorithmException e) {
+            appendLog(Level.SEVERE, "Phone does not support RSA encryption", true);
+        }
+
+        keyPairGenerator.initialize(512);
+        keyPair = keyPairGenerator.generateKeyPair();
 
         // Start a dummy server on localhost
         try {

@@ -4,6 +4,13 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -59,6 +66,7 @@ public class Server implements Runnable {
 
     private ServerSocket listener;
     private Logger logger;
+    private KeyPair serverKeyPair;
     private String dbUrl;
     private Connection connection;
 
@@ -81,6 +89,13 @@ public class Server implements Runnable {
             loggerFactory();
         } catch (IOException e) {
             throw new IOException("Could not build Server Logger.");
+        }
+
+        try {
+            keyFactory();
+        } catch (NoSuchAlgorithmException e) {
+            logger.log(Level.SEVERE, "RSA not supported, could not build key pair.");
+            throw new IOException("Could not build key pair.");
         }
 
         dbUrl = "jdbc:sqlite:" + databaseUrl;
@@ -115,6 +130,13 @@ public class Server implements Runnable {
                     " latitude real,\n" +
                     " longitude real\n" +
                     ");";
+            String sqlCreateTableKeyPair = "CREATE TABLE IF NOT EXISTS Locations (\n" +
+                    " key text PRIMARY KEY,\n" +
+                    " latitude real,\n" +
+                    " longitude real,\n" +
+                    " clientPublicKeyAlgorithm,\n" +
+                    " clientPublicKeyFormat\n" +
+                    ");";
             connection.createStatement().execute(sqlCreateTable);
             connection.close();
         } catch (SQLException e) {
@@ -142,6 +164,38 @@ public class Server implements Runnable {
         logger.setLevel(Level.ALL);
 
         logger.log(Level.CONFIG, "Server logger configured");
+    }
+
+    /**
+     * Build a public-private key pair using RSA-512.
+     *
+     * @throws NoSuchAlgorithmException
+     */
+    private void keyFactory() throws NoSuchAlgorithmException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(512);
+        serverKeyPair = keyPairGenerator.generateKeyPair();
+
+        PublicKey serverPublicKey = serverKeyPair.getPublic();
+        String serverPublicKeyAlgorithm = serverPublicKey.getAlgorithm();
+        String serverPublicKeyFormat = serverPublicKey.getFormat();
+        byte [] serverPublicKeyArr = serverPublicKey.getEncoded();
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (byte b : serverPublicKeyArr)
+            stringBuilder.append(b);
+        String serverPublicKeyString = stringBuilder.toString();
+
+        logger.log(Level.CONFIG, "Public key algorithm: " + serverPublicKeyAlgorithm);
+        logger.log(Level.CONFIG, "Public key format: " + serverPublicKeyFormat);
+        logger.log(Level.CONFIG, "Public key array: " + serverPublicKeyString);
+    }
+
+    private void rebuildPublicKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        byte [] keyArr = null;
+        String publicKeyAlgorithm = "RSA";
+        String publicKeyFormat = "X.509";
+        PublicKey key = KeyFactory.getInstance(publicKeyAlgorithm).generatePublic(new X509EncodedKeySpec(keyArr));
     }
 
     /**
