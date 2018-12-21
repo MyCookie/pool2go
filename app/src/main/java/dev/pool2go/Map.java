@@ -85,16 +85,24 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Callin
         // TODO: Keep following logic to top-level activity
         fileFactory(LOG_FILE_NAME, false);
 
+        // build public-private key pair using RSA-512
         KeyPairGenerator keyPairGenerator = null;
 
         try {
             keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         } catch (NoSuchAlgorithmException e) {
             appendLog(Level.SEVERE, "Phone does not support RSA encryption", true);
+            // TODO: find a way to fail in a user-friendly manner
         }
 
-        keyPairGenerator.initialize(512);
-        keyPair = keyPairGenerator.generateKeyPair();
+        if (keyPairGenerator != null) {
+            keyPairGenerator.initialize(512);
+            keyPair = keyPairGenerator.generateKeyPair();
+        } else {
+            appendLog(Level.SEVERE, "KeyPairGenerator is null", true);
+            throw new NullPointerException();
+            // TODO: find a way to fail in a user-friendly manner
+        }
 
         // Start a dummy server on localhost
         try {
